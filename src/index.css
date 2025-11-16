@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme variables */
+:root{
+  --brand: #ff3366;
+  --accent: #ffb86b;
+  --card: #ffffff;
+}
+
+/* Ensure body text adapts to theme */
+html, body, #root {
+  height: 100%;
+}
+body {
+  font-family: 'Poppins', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #0f172a; /* slate-900 default */
+  background-color: #ffffff;
+}
+
+/* Dark mode body/typography */
+.dark body {
+  color: #f8fafc; /* slate-100 */
+  background-color: #07070a;
+}
+
+/* Container */
+.container-centered{
+  max-width:1080px;
+  margin-left:auto;
+  margin-right:auto;
+  padding-left:1rem;
+  padding-right:1rem;
+}
+
+/* Input base (dark-safe) */
+.input-base{
+  @apply w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder:text-slate-400;
+}
+.dark .input-base{
+  @apply border-gray-700 bg-gray-800 text-gray-100 placeholder:text-slate-400;
+}
+
+/* Card with enforced text colors */
+.card{
+  @apply bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-md;
+  color: inherit;
+}
+.card * { color: inherit; }
+
+/* Buttons */
+.btn-primary{
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-brand to-pink-500 text-white font-semibold shadow-lg hover:scale-[1.02] transition;
+}
+.btn-ghost{
+  @apply inline-flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-slate-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition;
+}
+
+/* Timer large styles */
+.timer-large{ @apply flex flex-col items-center justify-center gap-4 }
+.timer-value{ @apply text-6xl font-extrabold text-gray-900 dark:text-white }
+.timer-label{ @apply text-lg font-semibold text-slate-600 dark:text-slate-300 }
+
+/* Modal overlay */
+.modal-backdrop {
+  @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50;
+}
+.modal-panel {
+  @apply bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-2xl max-w-3xl w-full;
+  color: inherit;
+}
+
+/* Card clickable visual affordance */
+.routine-card {
+  @apply cursor-pointer transition-transform duration-150;
+}
+.routine-card:active { @apply scale-[0.997]; }
+
+/* Utility tweaks for headings */
+h1, h2, h3 { color: inherit; }
+
+/* Accessibility focus outlines */
+:focus {
+  outline: 3px solid rgba(99,102,241,0.18);
+  outline-offset: 2px;
+}
