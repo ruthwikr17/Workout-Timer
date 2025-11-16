@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { getRoutine, upsertRoutine } from "../utils/localStorageUtils";
 import { v4 as uid } from "uuid";
 
@@ -13,219 +13,237 @@ export default function CreateRoutine() {
   const [roundRest, setRoundRest] = useState(0);
   const [autoStart, setAutoStart] = useState(true);
 
-  // Load existing routine if editing
   useEffect(() => {
     if (id) {
       const r = getRoutine(id);
       if (r) {
-        setName(r.name);
-        setRounds(r.rounds);
+        setName(r.name || "");
+        setRounds(r.rounds || []);
         setRoundRest(r.roundRest || 0);
         setAutoStart(r.autoStart !== false);
       }
+    } else {
+      // default: empty list (user requested)
+      setRounds([]);
     }
   }, [id]);
 
   function addRound() {
     setRounds([
       ...rounds,
-      { name: "", sets: 1, work: 30, rest: 25 },
+      { name: "", sets: 1, work: 30, rest: 25, extraBreak: 0 },
     ]);
   }
 
-  function updateRound(i, patch) {
+  function updateRound(idx, patch) {
     const copy = [...rounds];
-    copy[i] = { ...copy[i], ...patch };
+    copy[idx] = { ...copy[idx], ...patch };
     setRounds(copy);
   }
 
-  function removeRound(i) {
-    setRounds(rounds.filter((_, idx) => idx !== i));
+  function removeRound(idx) {
+    setRounds(rounds.filter((_, i) => i !== idx));
   }
 
   function save() {
-    if (!name.trim()) return alert("Enter a routine name");
+    if (!name.trim()) return alert("Please enter a routine name");
     if (rounds.length === 0) return alert("Add at least one round");
-
-    upsertRoutine({
+    const obj = {
       id: id || uid(),
-      name,
+      name: name.trim(),
       rounds,
       roundRest,
       autoStart,
-    });
-
+    };
+    upsertRoutine(obj);
     navigate("/");
   }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="card">
-        <h2 className="text-2xl font-bold mb-4">Create Routine</h2>
+        <h2 className="text-2xl font-semibold mb-3">Routine details</h2>
 
-        {/* Name */}
-        <label className="block mb-1 text-sm font-medium">Routine Name</label>
+        <label className="block text-sm mb-1">Routine name</label>
         <input
-          className="input-base"
-          placeholder="e.g. Full Body Circuit"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Full Body Circuit"
+          className="input-base"
         />
 
-        {/* Rounds */}
-        <div className="flex items-center justify-between mt-6 mb-2">
-          <h3 className="text-lg font-semibold">Rounds</h3>
-          <button className="btn-primary text-sm" onClick={addRound}>
-            + Add Round
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {rounds.map((r, i) => (
-            <div
-              key={i}
-              className="p-4 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-md"
-            >
-              {/* Title Row */}
-              <div className="flex justify-between items-center mb-3">
-                <input
-                  className="input-base"
-                  placeholder="Round name (e.g. Shoulders)"
-                  value={r.name}
-                  onChange={(e) =>
-                    updateRound(i, { name: e.target.value })
-                  }
-                />
-
-                <button
-                  className="text-red-500 text-sm"
-                  onClick={() => removeRound(i)}
-                >
-                  Remove
-                </button>
-              </div>
-
-              {/* Details */}
-              <div className="grid grid-cols-3 gap-4 mt-3">
-                {/* Sets */}
-                <div>
-                  <label className="block text-xs mb-1">Sets</label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="btn-ghost px-2"
-                      onClick={() =>
-                        updateRound(i, { sets: Math.max(1, r.sets - 1) })
-                      }
-                    >
-                      -1
-                    </button>
-                    <input
-                      type="number"
-                      className="input-base text-center"
-                      value={r.sets}
-                      onChange={(e) =>
-                        updateRound(i, { sets: Number(e.target.value) })
-                      }
-                    />
-                    <button
-                      className="btn-ghost px-2"
-                      onClick={() => updateRound(i, { sets: r.sets + 1 })}
-                    >
-                      +1
-                    </button>
-                  </div>
-                </div>
-
-                {/* Work */}
-                <div>
-                  <label className="block text-xs mb-1">Work (sec)</label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="btn-ghost px-2"
-                      onClick={() =>
-                        updateRound(i, { work: Math.max(0, r.work - 5) })
-                      }
-                    >
-                      -5
-                    </button>
-                    <input
-                      type="number"
-                      className="input-base text-center"
-                      value={r.work}
-                      onChange={(e) =>
-                        updateRound(i, { work: Number(e.target.value) })
-                      }
-                    />
-                    <button
-                      className="btn-ghost px-2"
-                      onClick={() => updateRound(i, { work: r.work + 5 })}
-                    >
-                      +5
-                    </button>
-                  </div>
-                </div>
-
-                {/* Rest */}
-                <div>
-                  <label className="block text-xs mb-1">Rest (sec)</label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="btn-ghost px-2"
-                      onClick={() =>
-                        updateRound(i, { rest: Math.max(0, r.rest - 5) })
-                      }
-                    >
-                      -5
-                    </button>
-                    <input
-                      type="number"
-                      className="input-base text-center"
-                      value={r.rest}
-                      onChange={(e) =>
-                        updateRound(i, { rest: Number(e.target.value) })
-                      }
-                    />
-                    <button
-                      className="btn-ghost px-2"
-                      onClick={() => updateRound(i, { rest: r.rest + 5 })}
-                    >
-                      +5
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Round Rest */}
         <div className="mt-6">
-          <label className="block text-xs mb-1">Rest Between Rounds (sec)</label>
-          <input
-            type="number"
-            className="input-base w-40"
-            value={roundRest}
-            onChange={(e) => setRoundRest(Number(e.target.value))}
-          />
+          <h3 className="text-lg font-medium mb-2">Rounds</h3>
+
+          <div className="space-y-3">
+            {rounds.map((r, i) => (
+              <div
+                key={i}
+                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+              >
+                <div className="flex items-center justify-between gap-4 mb-2">
+                  <input
+                    className="input-base flex-1 mr-3"
+                    placeholder="Round name (e.g. Shoulders)"
+                    value={r.name}
+                    onChange={(e) => updateRound(i, { name: e.target.value })}
+                  />
+                  <button
+                    onClick={() => removeRound(i)}
+                    className="text-red-500 ml-2"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs text-slate-500">Sets</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <button
+                        className="btn-ghost px-2"
+                        onClick={() =>
+                          updateRound(i, { sets: Math.max(1, (r.sets || 1) - 1) })
+                        }
+                      >
+                        -1
+                      </button>
+                      <input
+                        type="number"
+                        value={r.sets}
+                        onChange={(e) =>
+                          updateRound(i, { sets: Number(e.target.value || 0) })
+                        }
+                        className="input-base text-center"
+                      />
+                      <button
+                        className="btn-ghost px-2"
+                        onClick={() => updateRound(i, { sets: (r.sets || 1) + 1 })}
+                      >
+                        +1
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-slate-500">
+                      Work (sec)
+                    </label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <button
+                        className="btn-ghost px-2"
+                        onClick={() =>
+                          updateRound(i, { work: Math.max(0, (r.work || 0) - 5) })
+                        }
+                      >
+                        -5
+                      </button>
+                      <input
+                        type="number"
+                        value={r.work}
+                        onChange={(e) =>
+                          updateRound(i, { work: Number(e.target.value || 0) })
+                        }
+                        className="input-base text-center"
+                      />
+                      <button
+                        className="btn-ghost px-2"
+                        onClick={() => updateRound(i, { work: (r.work || 0) + 5 })}
+                      >
+                        +5
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-slate-500">
+                      Rest (sec)
+                    </label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <button
+                        className="btn-ghost px-2"
+                        onClick={() =>
+                          updateRound(i, { rest: Math.max(0, (r.rest || 0) - 5) })
+                        }
+                      >
+                        -5
+                      </button>
+                      <input
+                        type="number"
+                        value={r.rest}
+                        onChange={(e) =>
+                          updateRound(i, { rest: Number(e.target.value || 0) })
+                        }
+                        className="input-base text-center"
+                      />
+                      <button
+                        className="btn-ghost px-2"
+                        onClick={() => updateRound(i, { rest: (r.rest || 0) + 5 })}
+                      >
+                        +5
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-slate-500">
+                      Extra Break (optional, sec)
+                    </label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="number"
+                        value={r.extraBreak || 0}
+                        onChange={(e) =>
+                          updateRound(i, { extraBreak: Number(e.target.value || 0) })
+                        }
+                        className="input-base text-center"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Round button moved below the rounds */}
+          <div className="mt-4">
+            <button onClick={addRound} className="btn-primary">
+              + Add Round
+            </button>
+          </div>
         </div>
 
-        {/* Auto-start */}
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={autoStart}
-            onChange={(e) => setAutoStart(e.target.checked)}
-          />
-          <span className="text-sm">Auto-start next set/round</span>
+        <div className="mt-6 flex items-center gap-6">
+          <div>
+            <label className="block text-xs text-slate-500">Round rest (sec)</label>
+            <input
+              type="number"
+              value={roundRest}
+              onChange={(e) => setRoundRest(Number(e.target.value || 0))}
+              className="input-base w-40"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              id="auto"
+              type="checkbox"
+              checked={autoStart}
+              onChange={(e) => setAutoStart(e.target.checked)}
+            />
+            <label htmlFor="auto" className="text-sm">
+              Auto-start next set/round
+            </label>
+          </div>
         </div>
 
-        <div className="flex gap-4 mt-6">
-          <button className="btn-primary" onClick={save}>
+        <div className="mt-6 flex gap-3">
+          <button onClick={save} className="btn-primary">
             Save Routine
           </button>
-          <button className="btn-ghost" onClick={() => navigate("/")}>
+          <Link to="/" className="btn-ghost">
             Cancel
-          </button>
+          </Link>
         </div>
       </div>
     </div>

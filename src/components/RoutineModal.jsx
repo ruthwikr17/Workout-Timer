@@ -1,85 +1,66 @@
-import React, { useEffect } from 'react'
+import React from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { deleteRoutine } from "../utils/localStorageUtils";
 
-export default function RoutineModal({ routine, onClose, onEdit, onStart, onDelete }) {
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+export default function RoutineModal({ routine, onClose }) {
+  const navigate = useNavigate();
+  if (!routine) return null;
 
-  if (!routine) return null
+  function handleDelete() {
+    if (!confirm("Delete this routine?")) return;
+    deleteRoutine(routine.id);
+    onClose && onClose();
+  }
+
+  function handleStart() {
+    onClose && onClose();
+    navigate(`/workout/${routine.id}`);
+  }
 
   return (
-    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="modal-panel"
-        onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
-      >
-        <div className="flex justify-between items-start gap-4">
-          <div>
-            <h2 className="text-2xl font-bold">{routine.name}</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {routine.rounds?.length ?? 0} rounds • Rest between rounds: {routine.roundRest ?? 0}s
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onStart(routine.id)}
-              className="btn-primary"
-            >
-              Start
-            </button>
-
-            <button
-              onClick={() => onEdit(routine.id)}
-              className="btn-ghost"
-            >
-              Edit
-            </button>
-
-            <button
-              onClick={() => {
-                if (confirm('Delete this routine?')) {
-                  onDelete(routine.id)
-                  onClose()
-                }
-              }}
-              className="text-sm text-red-500"
-            >
-              Delete
-            </button>
-          </div>
+        className="absolute inset-0 bg-black/40"
+        onClick={() => onClose && onClose()}
+      />
+      <div className="relative max-w-2xl w-full card">
+        <div className="flex items-start justify-between">
+          <h3 className="text-xl font-semibold">{routine.name}</h3>
+          <button onClick={() => onClose && onClose()} className="text-slate-500">
+            Close
+          </button>
         </div>
 
-        <hr className="my-4 border-gray-200 dark:border-gray-700" />
-
-        <div className="space-y-3 max-h-[60vh] overflow-auto">
-          {routine.rounds?.map((rd, i) => (
-            <div
-              key={i}
-              className="p-3 rounded-lg border dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 flex justify-between items-center"
-            >
-              <div>
-                <div className="font-semibold">{rd.name}</div>
-                <div className="text-sm text-slate-500 dark:text-slate-400">
-                  {rd.sets} sets • {rd.work}s work • {rd.rest}s rest
+        <div className="mt-4 space-y-3">
+          {routine.rounds.map((rd, i) => (
+            <div key={i} className="p-3 rounded border border-gray-100 dark:border-gray-800">
+              <div className="flex justify-between items-center">
+                <div className="font-medium">{rd.name || `Round ${i + 1}`}</div>
+                <div className="text-sm text-slate-500">
+                  Sets: {rd.sets} • Work: {rd.work}s • Rest: {rd.rest}s
                 </div>
               </div>
-
-              <div className="text-sm text-slate-500 dark:text-slate-400">
-                Round {i + 1}
-              </div>
+              {rd.extraBreak ? (
+                <div className="text-xs text-slate-400 mt-1">
+                  Extra break between sets: {rd.extraBreak}s
+                </div>
+              ) : null}
             </div>
           ))}
         </div>
 
-        <div className="mt-5 flex justify-end">
-          <button onClick={onClose} className="btn-ghost">Close</button>
+        <div className="mt-4 flex gap-3 justify-end">
+          <button onClick={handleStart} className="btn-primary">
+            Start
+          </button>
+          <Link to={`/create?id=${routine.id}`} onClick={() => onClose && onClose()} className="btn-ghost">
+            Edit
+          </Link>
+          <button onClick={handleDelete} className="text-red-500">
+            Delete
+          </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
