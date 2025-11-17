@@ -1,246 +1,269 @@
-// src/pages/CreateRoutine.jsx
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getRoutine, upsertRoutine } from "../utils/localStorageUtils";
 import { v4 as uid } from "uuid";
 
 /**
- * Minimal Create Routine page
- * - clean, compact layout
- * - Add Round button below list
- * - simple +/- for sets and +/-5 for time values
+ * Defensive CreateRoutine.jsx
+ * - avoids runtime crashes when rounds is undefined / not an array
+ * - sanitizes numeric inputs
+ * - uses functional setState for safety
  */
+
+const toSafeNumber = (v, fallback = 0) => {
+  // allow empty string -> fallback
+  if (v === "" || v === null || v === undefined) return fallback;
+  const s = String(v).replace(/\D/g, "").slice(0, 4); // max 4 digits
+  if (s === "") return fallback;
+  const n = parseInt(s, 10);
+  return Number.isNaN(n) ? fallback : n;
+};
 
 export default function CreateRoutine() {
   const [q] = useSearchParams();
-  const id = q.get("id");
+  const editingId = q.get("id");
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
-  const [rounds, setRounds] = useState([]);
+  const [rounds, setRounds] = useState([]); // always start as array
   const [roundRest, setRoundRest] = useState(0);
   const [autoStart, setAutoStart] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      const r = getRoutine(id);
-      if (r) {
-        setName(r.name || "");
-        setRounds(r.rounds || []);
-        setRoundRest(r.roundRest || 0);
-        setAutoStart(r.autoStart !== false);
+    try {
+      if (editingId) {
+        const stored = getRoutine(editingId);
+        if (stored) {
+          setName(stored.name || "");
+          // ensure rounds is array
+          setRounds(Array.isArray(stored.rounds) ? stored.rounds : []);
+          setRoundRest(Number(stored.roundRest || 0));
+          setAutoStart(Boolean(stored.autoStart));
+        }
+      } else {
+        // keep empty array (explicit)
+        setRounds((r) => (Array.isArray(r) ? r : []));
       }
-    } else {
-      // start empty (as you requested)
+    } catch (err) {
+      // don't crash — log and keep defaults
+      console.error("Error loading routine for edit:", err);
       setRounds([]);
     }
-  }, [id]);
+  }, [editingId]);
 
-  function addRound() {
-    setRounds((s) => [...s, { name: "", sets: 1, work: 30, rest: 25, extraBreak: 0 }]);
-  }
+  // Safe add round
+  const addRound = () => {
+    try {
+      const newRound = { name: "", sets: 1, work: 0, rest: 0, extraBreak: 0 };
+      setRounds((prev) => {
+        if (!Array.isArray(prev)) return [newRound];
+        return [...prev, newRound];
+      });
+    } catch (err) {
+      console.error("addRound error:", err);
+    }
+  };
 
-  function updateRound(idx, patch) {
-    setRounds((prev) => {
-      const copy = [...prev];
-      copy[idx] = { ...copy[idx], ...patch };
-      return copy;
-    });
-  }
+  const removeRound = (index) => {
+    try {
+      setRounds((prev) => {
+        if (!Array.isArray(prev)) return [];
+        return prev.filter((_, i) => i !== index);
+      });
+    } catch (err) {
+      console.error("removeRound error:", err);
+    }
+  };
 
-  function removeRound(idx) {
-    setRounds((prev) => prev.filter((_, i) => i !== idx));
-  }
+  const updateRound = (index, patch) => {
+    try {
+      setRounds((prev) => {
+        const safePrev = Array.isArray(prev) ? prev : [];
+        const copy = safePrev.slice();
+        copy[index] = { ...(copy[index] || {}), ...patch };
+        return copy;
+      });
+    } catch (err) {
+      console.error("updateRound error:", err);
+    }
+  };
 
-  function save() {
-    if (!name.trim()) return alert("Please enter a routine name");
-    if (!rounds.length) return alert("Add at least one round");
-    const obj = { id: id || uid(), name: name.trim(), rounds, roundRest, autoStart };
-    upsertRoutine(obj);
-    navigate("/");
-  }
+  const save = () => {
+    try {
+      if (!name.trim()) {
+        alert("Enter routine name");
+        return;
+      }
+      const safeRounds = Array.isArray(rounds) ? rounds : [];
+      if (safeRounds.length === 0) {
+        alert("Add at least one round");
+        return;
+      }
 
-  // small helper to safely parse ints
-  function toNum(v, fallback = 0) {
-    const n = parseInt(v, 10);
-    return Number.isNaN(n) ? fallback : n;
-  }
+      const cleanRounds = safeRounds.map((r) => ({
+        name: String(r.name || ""),
+        sets: toSafeNumber(r.sets, 1),
+        work: toSafeNumber(r.work, 0),
+        rest: toSafeNumber(r.rest, 0),
+        extraBreak: toSafeNumber(r.extraBreak, 0),
+      }));
+
+      const payload = {
+        id: editingId || uid(),
+        name: name.trim(),
+        rounds: cleanRounds,
+        roundRest: toSafeNumber(roundRest, 0),
+        autoStart: Boolean(autoStart),
+      };
+
+      upsertRoutine(payload);
+      navigate("/");
+    } catch (err) {
+      console.error("Save routine failed:", err);
+      alert("Failed to save routine. Check console for details.");
+    }
+  };
+
+  // Guarded render: ensure rounds is array before mapping
+  const roundsForRender = Array.isArray(rounds) ? rounds : [];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="card">
-        <h2 className="text-2xl font-semibold mb-3">Routine details</h2>
+    <div className="max-w-3xl mx-auto space-y-6 pb-12">
+      <div>
+        <h1 className="text-2xl font-semibold">Create Routine</h1>
+      </div>
 
+      {/* Routine name */}
+      <div className="card p-4">
         <label className="block text-sm mb-1">Routine name</label>
         <input
+          className="input-base w-full"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Full Body Circuit"
-          className="input-base"
         />
+      </div>
 
-        <div className="mt-6">
-          <h3 className="text-lg font-medium mb-3">Rounds</h3>
-
-          <div className="space-y-3">
-            {rounds.map((r, i) => (
-              <div key={i} className="p-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                {/* header: name + remove */}
-                <div className="flex items-center justify-between mb-2 gap-3">
-                  <input
-                    className="input-base flex-1"
-                    placeholder="Round name (e.g. Shoulders)"
-                    value={r.name}
-                    onChange={(e) => updateRound(i, { name: e.target.value })}
-                  />
-                  <button
-                    onClick={() => removeRound(i)}
-                    className="text-red-500 ml-3"
-                    aria-label={`Remove round ${i + 1}`}
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                {/* compact row for numeric fields */}
-                <div className="flex flex-wrap gap-3 items-center">
-                  {/* Sets */}
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-slate-500">Sets</label>
-                    <div className="flex items-center border rounded">
-                      <button
-                        className="px-2"
-                        onClick={() =>
-                          updateRound(i, { sets: Math.max(1, (r.sets || 1) - 1) })
-                        }
-                      >
-                        -1
-                      </button>
-                      <input
-                        className="input-base text-center w-20"
-                        type="number"
-                        value={r.sets}
-                        onChange={(e) => updateRound(i, { sets: toNum(e.target.value, 1) })}
-                        min={1}
-                      />
-                      <button
-                        className="px-2"
-                        onClick={() => updateRound(i, { sets: (r.sets || 1) + 1 })}
-                      >
-                        +1
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Work */}
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-slate-500">Work (sec)</label>
-                    <div className="flex items-center border rounded">
-                      <button
-                        className="px-2"
-                        onClick={() => updateRound(i, { work: Math.max(0, (r.work || 0) - 5) })}
-                      >
-                        -5
-                      </button>
-                      <input
-                        className="input-base text-center w-24"
-                        type="number"
-                        value={r.work}
-                        onChange={(e) => updateRound(i, { work: toNum(e.target.value, 0) })}
-                        min={0}
-                      />
-                      <button
-                        className="px-2"
-                        onClick={() => updateRound(i, { work: (r.work || 0) + 5 })}
-                      >
-                        +5
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Rest */}
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-slate-500">Rest (sec)</label>
-                    <div className="flex items-center border rounded">
-                      <button
-                        className="px-2"
-                        onClick={() => updateRound(i, { rest: Math.max(0, (r.rest || 0) - 5) })}
-                      >
-                        -5
-                      </button>
-                      <input
-                        className="input-base text-center w-24"
-                        type="number"
-                        value={r.rest}
-                        onChange={(e) => updateRound(i, { rest: toNum(e.target.value, 0) })}
-                        min={0}
-                      />
-                      <button
-                        className="px-2"
-                        onClick={() => updateRound(i, { rest: (r.rest || 0) + 5 })}
-                      >
-                        +5
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Extra Break (optional, minimal) */}
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-slate-500">Extra Break (sec)</label>
-                    <input
-                      className="input-base text-center w-28"
-                      type="number"
-                      value={r.extraBreak || 0}
-                      onChange={(e) => updateRound(i, { extraBreak: toNum(e.target.value, 0) })}
-                      min={0}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Add Round button below rounds */}
-          <div className="mt-4">
-            <button onClick={addRound} className="btn-primary">
-              + Add Round
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-6 flex items-center gap-6">
-          <div>
-            <label className="block text-xs text-slate-500">Round rest (sec)</label>
-            <input
-              type="number"
-              value={roundRest}
-              onChange={(e) => setRoundRest(toNum(e.target.value, 0))}
-              className="input-base w-40"
-              min={0}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              id="auto"
-              type="checkbox"
-              checked={autoStart}
-              onChange={(e) => setAutoStart(e.target.checked)}
-            />
-            <label htmlFor="auto" className="text-sm">
-              Auto-start next set/round
-            </label>
-          </div>
-        </div>
-
-        <div className="mt-6 flex gap-3">
-          <button onClick={save} className="btn-primary">
-            Save Routine
+      {/* Rounds list */}
+      <div className="card p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-medium">Rounds</h2>
+          <button onClick={addRound} className="btn-primary text-sm">
+            + Add Round
           </button>
-          <Link to="/" className="btn-ghost">
-            Cancel
-          </Link>
         </div>
+
+        {roundsForRender.length === 0 && (
+          <div className="text-slate-500 text-sm">No rounds — click “Add Round”.</div>
+        )}
+
+        {roundsForRender.map((r, i) => (
+          <div key={i} className="border rounded-xl p-3">
+            <div className="flex items-center justify-between mb-3 gap-3">
+              <input
+                className="input-base w-80"
+                value={r.name || ""}
+                onChange={(e) => updateRound(i, { name: e.target.value })}
+                placeholder={`Round ${i + 1} name`}
+              />
+              <button
+                onClick={() => removeRound(i)}
+                className="text-red-600 text-sm"
+              >
+                Remove
+              </button>
+            </div>
+
+            <div className="flex items-center gap-6 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-sm w-12">Sets</span>
+                <input
+                  className="input-num"
+                  value={String(r.sets ?? 0)}
+                  onChange={(e) =>
+                    updateRound(i, { sets: toSafeNumber(e.target.value, 1) })
+                  }
+                  maxLength={4}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm w-16">Work</span>
+                <input
+                  className="input-num"
+                  value={String(r.work ?? 0)}
+                  onChange={(e) =>
+                    updateRound(i, { work: toSafeNumber(e.target.value, 0) })
+                  }
+                  maxLength={4}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm w-16">Rest</span>
+                <input
+                  className="input-num"
+                  value={String(r.rest ?? 0)}
+                  onChange={(e) =>
+                    updateRound(i, { rest: toSafeNumber(e.target.value, 0) })
+                  }
+                  maxLength={4}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 mt-3">
+              <span className="text-sm w-28">Extra Break</span>
+              <input
+                className="input-num"
+                value={String(r.extraBreak ?? 0)}
+                onChange={(e) =>
+                  updateRound(i, {
+                    extraBreak: toSafeNumber(e.target.value, 0),
+                  })
+                }
+                maxLength={4}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Round rest + auto */}
+      <div className="card p-4 flex items-center gap-6">
+        <div>
+          <label className="block text-xs text-slate-500 mb-1">
+            Rest between rounds (sec)
+          </label>
+          <input
+            className="input-num"
+            value={String(roundRest ?? 0)}
+            onChange={(e) => setRoundRest(toSafeNumber(e.target.value, 0))}
+            maxLength={4}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 ml-6">
+          <input
+            id="autoStart"
+            type="checkbox"
+            checked={autoStart}
+            onChange={(e) => setAutoStart(Boolean(e.target.checked))}
+          />
+          <label htmlFor="autoStart" className="text-sm">
+            Auto-start next set/round
+          </label>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-3">
+        <button onClick={save} className="btn-primary">
+          Save Routine
+        </button>
+        <button onClick={() => navigate("/")} className="btn-ghost">
+          Cancel
+        </button>
       </div>
     </div>
   );

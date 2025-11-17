@@ -35,8 +35,23 @@ body {
 }
 
 /* Input base (dark-safe) */
-.input-base{
-  @apply w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder:text-slate-400;
+.input-base {
+  @apply p-2 rounded-xl border border-gray-300 dark:border-gray-700 
+         bg-white dark:bg-gray-800 text-slate-900 dark:text-slate-100 
+         placeholder:text-slate-400 dark:placeholder:text-slate-500;
+}
+
+/* Numeric compact inputs (sets, work, rest, breaks, etc.) */
+.input-num {
+  @apply p-2 rounded-xl border border-gray-300 dark:border-gray-700 
+         bg-white dark:bg-gray-800 text-center text-slate-900 dark:text-slate-100 
+         w-16;
+}
+
+.input-num-sm {
+  @apply p-2 rounded-xl border border-gray-300 dark:border-gray-700 
+         bg-white dark:bg-gray-800 text-center text-slate-900 dark:text-slate-100 
+         w-12;
 }
 .dark .input-base{
   @apply border-gray-700 bg-gray-800 text-gray-100 placeholder:text-slate-400;
