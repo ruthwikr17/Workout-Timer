@@ -1,16 +1,63 @@
-# React + Vite
+# Workout Timer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern browser-based workout timer built with **React + Vite + Tailwind CSS**.  
+Create custom workout routines, configure sets and breaks, and run guided workout sessions with visual progress and sound cues.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## React Compiler
+- Create custom workout routines
+- Add multiple rounds with:
+  - Round name
+  - Number of sets
+  - Work duration (seconds)
+  - Rest duration (seconds)
+- Rest time between rounds
+- Auto-start next set/round toggle
+- Workout execution with:
+  - Countdown timer
+  - Circular progress indicator
+  - Progress bar with percentage
+  - Start / Pause / Reset controls
+- Sound alerts:
+  - Start cue
+  - Near-end beep
+  - Rest cue
+  - Finish cue
+- Light / Dark mode
+- Responsive layout
+- Persistent storage using browser LocalStorage
+- No backend required
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Data Storage Behavior
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Routines are stored in **LocalStorage** inside your browser.
+
+- Data persists after closing the tab or browser
+- Each device/browser has its own data
+- Other users do not see your routines
+- Clearing browser storage removes saved routines
+
+---
+
+## Tech Stack
+
+- React (Vite)
+- React Router
+- Tailwind CSS
+- Howler.js (Audio engine)
+- UUID (Unique routine IDs)
+- LocalStorage (Persistence)
+
+---
+
+## Installation
+
+Clone repository:
+
+```bash
+git clone <your-repo-url>
+cd workout-timer
