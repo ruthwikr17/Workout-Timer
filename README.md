@@ -5,6 +5,12 @@ Create custom workout routines, configure sets and breaks, and run guided workou
 
 ---
 
+## Live Demo 
+
+https://workout-timer-tau-three.vercel.app/
+
+---
+
 ## Features
 
 - Create custom workout routines
@@ -61,3 +67,79 @@ Clone repository:
 ```bash
 git clone <your-repo-url>
 cd workout-timer
+```
+
+Install dependencies:
+
+```
+npm install
+```
+
+Run development server:
+
+```
+npm run dev
+```
+
+Open in browser:
+
+```
+http://localhost:5173
+```
+
+---
+
+##  Sound Setup
+
+Place sound files in:
+
+```
+public/sounds/
+```
+
+Required files:
+
+```
+start.wav    → Workout start
+beep.wav     → Near-end warning
+rest.wav     → Rest start
+finish.wav  → Workout completion
+```
+
+---
+
+## Project Structure
+
+```
+src/
+ ├── components/
+ │   ├── ThemeToggle.jsx
+ │   └── TimerDisplay.jsx
+ ├── pages/
+ │   ├── Home.jsx
+ │   ├── CreateRoutine.jsx
+ │   └── Workout.jsx
+ ├── utils/
+ │   ├── localStorageUtils.js
+ │   └── timerUtils.js
+ ├── index.css
+ ├── App.jsx
+ └── main.jsx
+```
+
+---
+
+## Possible Future Enhancements
+
+- Cloud sync & login
+- Shareable routine links
+- Workout history tracking
+- Export / Import routines
+- PWA mobile installation
+- Vibration cues on mobile
+
+---
+
+## License
+
+Free for personal and educational use.
